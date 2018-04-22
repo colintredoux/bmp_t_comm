@@ -12,7 +12,7 @@ p_load(tidyverse, magrittr, gmodels, lme4, lmerTest, stringr,
        DHARMa, pbkrtest)
 
 # Load data---------------------------------------------------------------------
-load("data/bmp_tcom.dat")
+bmp_tcom.dat <- readRDS("data/bmp_tcom.Rds")
 
 # Explore data------------------------------------------------------------------
 # How many data points per participant?  Histogram that
@@ -32,7 +32,8 @@ bmp_tcom.dat %>%
   scale_x_log10()
 # OK to that, when logged
 # But one must ask what does the distribution look like over
-# T Communities
+# T Communities or per person
+
 
 bmp_tcom.dat %>%
   group_by(trackingid, tcommunity) %>%
@@ -42,6 +43,7 @@ bmp_tcom.dat %>%
   scale_x_log10() +
   facet_wrap( ~ tcommunity)
 # OK to that, when logged, but some small groupings
+# EDIT: seems to have improved with Gemma's new data file
 
 posdodge = position_dodge(0.9)
 bmp_tcom.dat %>%
@@ -58,7 +60,7 @@ bmp_tcom.dat %>%
     mean_sum_mins = mean(sum_mins, na.rm = T),
     sd_sum_mins   = sd(sum_mins, na.rm = T),
     n_sum_mins    = n(),
-    ci            = 1.96 * sd_sum_mins / sqrt(n_sum_mins)
+    ci            = 1.96 * (sd_sum_mins / sqrt(n_sum_mins))
   ) %>%
   ggplot(aes(x = belonging, y = mean_sum_mins, fill = community)) +
   geom_bar(stat = "identity", position = position_dodge()) +
@@ -70,6 +72,7 @@ bmp_tcom.dat %>%
   theme_bw(base_size = 12) +
   theme(legend.position = c(0.85, 0.75))
 # graph shows clear pattern but quite a lot of error
+# co-ords flipped below for different view
 
 bmp_tcom.dat %>%
   filter(community != "Other") %>%
@@ -143,7 +146,7 @@ head(resid1_fm0)
 
 
 
-# model with predictors---------------------------------------------------------
+# model time with predictors----------------------------------------------------
 # Base model
 lme_mod_0 <-
   lmer(log_sum_mins ~ (1 | trackingid),
@@ -157,7 +160,7 @@ lme_mod_1 <- lmer(log_sum_mins ~ belonging +
                   REML = FALSE)
 summary(lme_mod_1)
 
-# compare against null model
+# compare against null(base) model
 anova(lme_mod_1, lme_mod_0)
 
 # confints
@@ -179,6 +182,16 @@ bmp_tcom_sum.dat %>%
 
 
 # Conclude from all that that residuals don't look acceptable
+
+# We need to re-think this, let's see whether removing zero counts improves
+# things
+
+
+
+
+
+
+# MODEL visit data--------------------------------------------------------------
 # We can try to treat the data as count data - number of visits to an area
 
 # Let's reduce the data to counts per person per region
@@ -201,6 +214,7 @@ x <- bmp_tcom.dat %>%
 y <- x$belonging
 y <- str_replace(y, "belonging_", "")
 x$belonging <- y
+bmp_tcom_count.dat <- x
 z <- 1:length(bmp_tcom_count.dat$trackingid)
 bmp_tcom_count.dat <- x
 bmp_tcom_count.dat$z <- z

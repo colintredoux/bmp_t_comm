@@ -12,13 +12,19 @@ p_load(tidyverse, readxl, haven, magrittr)
 options(scipen = 3)
 
 # read in  data from Excel sheet------------------------------------------------
-bmp_tcom.dat <- read_excel("data/UserTcommInfo.xlsx",
-                           sheet = "Trackdata") %>% 
-  rename_all(tolower) 
+bmp_tcom.dat <- read_excel("data/UserTcommInfoCleaned.xlsx",
+                           sheet = "Trackdata") %>%
+  rename_all(tolower) %>%
+  mutate(tcommunity = ifelse(tcommunity == "Neutral", "Shared", tcommunity)) %>%
+  mutate(belonging = ifelse(belonging == "Neutral", "Shared", belonging)) %>%
+  mutate(mode = case_when(mode == 1 ~ "Walk",
+                          mode == 2 ~ "Unsure",
+                          mode == 3 ~ "Vehicle",
+                          TRUE ~ "Else"))
 
 bmp_tcom.dat %>% 
   group_by(trackingid, belonging, tmain, mode) %>% 
   summarise(sum_mins = sum(mins, na.rm = T),
             sd_mins = sd(mins, na.rm = T),
             n_mins = n())
-save(file = "data/bmp_tcom.dat", bmp_tcom.dat )
+saveRDS(file = "data/bmp_tcom.Rds", bmp_tcom.dat )
